@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Home - Personal Expense Tracker</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            min-height: 100vh;
+        }
+        .navbar-brand {
+            font-weight: bold;
+            font-size: 1.4rem;
+        }
+        .table {
+            background-color: white;
+            color: black;
+        }
+        .fadeout {
+            transition: opacity 0.5s ease-out;
+        }
+        .nav-link {
+            margin-left: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#">📘 Personal Expense Tracker</a>
+    
+    <div class="d-flex ms-auto align-items-center">
+      <a href="/add_expense" class="nav-link text-primary">➕ Add Expense</a>
+      <a href="/view_expense" class="nav-link text-success">📊 View Expense</a>
+      <a href="/logout" class="nav-link text-danger">🚪 Logout</a>
+    </div>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<div class="container mt-4">
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-info fadeout" role="alert">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Welcome Message -->
+    <div class="mb-4">
+        <h5>Welcome, <strong>{{ username }}</strong></h5>
+    </div>
+
+    <!-- Recent Expenses -->
+    <h3 class="mb-4">Recent Expenses</h3>
+    {% if recent_expenses %}
+    <div class="table-responsive">
+        <table class="table table-bordered rounded">
+            <thead class="table-dark">
+                <tr>
+                    <th>Title</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for expense in recent_expenses %}
+                <tr>
+                    <td>{{ expense['title'] }}</td>
+                    <td>{{ expense['amount'] }}</td>
+                    <td>{{ expense['date'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+        <p>No recent expenses to display.</p>
+    {% endif %}
+
+    <!-- Total and Summary -->
+    <h4 class="mt-4">Total Expense for {{ month_name }} {{ year }}: ₹{{ monthly_total }}</h4>
+    {% if status != 'No change' %}
+        <p>Your expenses have <strong>{{ status }}</strong> by <strong>{{ percentage_change }}%</strong> compared to last month (₹{{ last_month_total }})</p>
+    {% else %}
+        <p>Your expenses have remained the same as last month.</p>
+    {% endif %}
+
+   <!-- Summary Dashboard -->
+<div class="row my-4">
+    <div class="col-md-4 mb-3">
+        <div class="card shadow-sm border-start border-primary border-5">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Current Month</h6>
+                <h4 class="card-text text-primary">₹{{ monthly_total }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card shadow-sm border-start border-secondary border-5">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Last Month</h6>
+                <h4 class="card-text text-secondary">₹{{ last_month_total }}</h4>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-3">
+        <div class="card shadow-sm border-start border-{{ 'success' if status == 'decreased' else 'danger' }} border-5">
+            <div class="card-body">
+                <h6 class="card-title text-muted">Change</h6>
+                {% if status == 'No change' %}
+                    <h4 class="card-text text-dark">0%</h4>
+                {% else %}
+                    <h4 class="card-text text-{{ 'success' if status == 'decreased' else 'danger' }}">
+                        {% if status == 'increased' %}⬆{% else %}⬇{% endif %}
+                        {{ percentage_change }}%
+                    </h4>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+    <!-- Pie Chart -->
+    <div class="container mt-5 bg-white p-4 rounded shadow" style="max-width: 500px;">
+        <h5 class="text-center mb-3">Expense Comparison</h5>
+        <canvas id="expensePieChart" width="400" height="400"></canvas>
+    </div>
+</div>
+
+<!-- Chart JS -->
+<script>
+    const ctxPie = document.getElementById('expensePieChart').getContext('2d');
+    new Chart(ctxPie, {
+        type: 'pie',
+        data: {
+            labels: ['Last Month', '{{ month_name }}'],
+            datasets: [{
+                data: [{{ last_month_total | default(0) }}, {{ monthly_total | default(0) }}],
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(54, 162, 235, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.parsed;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percent = ((value / total) * 100).toFixed(2);
+                            return `${context.label}: ₹${value} (${percent}%)`;
+                        }
+                    }
+                },
+                legend: {
+                    position: 'bottom'
+                },
+                title: {
+                    display: true,
+                    text: 'Last vs Current Month Expenses'
+                }
+            }
+        }
+    });
+</script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Alert Auto-Fade -->
+<script>
+    setTimeout(() => {
+        const alerts = document.querySelectorAll(".fadeout");
+        alerts.forEach(alert => {
+            alert.style.opacity = 0;
+            setTimeout(() => alert.remove(), 500);
+        });
+    }, 3000);
+</script>
+
+</body>
+</html>
