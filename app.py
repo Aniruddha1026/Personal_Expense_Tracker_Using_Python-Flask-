@@ -2,10 +2,13 @@ from flask import Flask,request,render_template,redirect,url_for,session,flash
 import sqlite3
 from werkzeug.security import check_password_hash,generate_password_hash
 from datetime import datetime
+import os
+from dotenv import load_dotenv
 
 
+load_dotenv()
 app=Flask(__name__)
-app.secret_key="expense_tracker"
+app.secret_key=os.environ.get("SECRET_KEY", "dev_default_key")
 
 
 def get_db_connection():
